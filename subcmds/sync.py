@@ -392,10 +392,11 @@ later is required to fix a server side protocol bug.
     sem = _threading.Semaphore(jobs)
     err_event = _threading.Event()
 
-    def GC(bare_git):
+    def GC(project):
       try:
         try:
-          bare_git.gc('--auto', config=config)
+          project.bare_git.gc('--auto', config=config)
+          os.system("git-fetch-patches %s %s" % ("gerrit", project.worktree))
         except GitError:
           err_event.set()
         except:
@@ -404,11 +405,11 @@ later is required to fix a server side protocol bug.
       finally:
         sem.release()
 
-    for bare_git in gitdirs.values():
+    for project in projects:
       if err_event.isSet():
         break
       sem.acquire()
-      t = _threading.Thread(target=GC, args=(bare_git,))
+      t = _threading.Thread(target=GC, args=(project,))
       t.daemon = True
       threads.add(t)
       t.start()
